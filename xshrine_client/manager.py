@@ -141,7 +141,7 @@ def main():
             print('客户端初始化完成')
 
     # 快速注册模式，无需手工配置就能完成注册
-    if args.register and args.fast:
+    elif args.register and args.fast:
         # 交换共享密钥
         serialized_public_key, private_key, _ = ecdh_generater()
         response = requests.post(
@@ -156,10 +156,12 @@ def main():
             result = response.json()
 
             if result['status'] == 1:
-                # 计算共享密钥
+                 # 计算共享密钥
                 shared_key = get_shared_key(result['message'].encode(), private_key)
+
                 # 转换为base64
                 shared_key = base64.b64encode(shared_key).decode('utf-8')
+
                 # 获取随机 uuid 和端口
                 uuid = str(uuid4())
                 port = get_open_port()
@@ -184,7 +186,7 @@ def main():
                     else:
                         print(f'客户端注册失败, error: {result}')
 
-    if not args:
+    else:
         import runner
         from settings import API_HOST, API_PORT
 
