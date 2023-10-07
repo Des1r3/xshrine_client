@@ -98,7 +98,7 @@ def client_init(uuid, key, port=33459):
     settings_file = Path(BASE_DIR, 'settings.py')
     if os.path.exists(settings_file):
         print("Cannot execute initialization because <settings.py> is already exists.")
-        return
+        return False
     
     # settings.py 文件模板
     settings_template = f"""
@@ -197,10 +197,11 @@ def main():
         shared_key = get_key(url)
 
         # 初始化
-        client_init(uuid, shared_key, port)
-
-        # 注册
-        client_register(url, host, port, uuid, shared_key)
+        if client_init(uuid, shared_key, port):
+            # 注册
+            client_register(url, host, port, uuid, shared_key)
+        else:
+            return
 
     else:
         import runner
