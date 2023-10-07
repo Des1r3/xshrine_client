@@ -1,8 +1,10 @@
 FILEPATH="/root/xshrine_client/xshrine_client/manager.py"
 
-PYTHON_EXECUTION="python3"
+PYTHON_EXECUTION=$(which python3)
 
 REGISTER_URL="http://116.205.188.228:7777/processClientUpload/"
+
+DOMAIN=""
 
 # 确认用户为Root
 if [ "$EUID" -ne 0 ]; then
@@ -27,8 +29,12 @@ WantedBy=multi-user.target
 EOF
 
 # 执行命令
-${PYTHON_EXECUTION} ${FILEPATH} -f -r ${REGISTER_URL}
+if [ -z "$DOMAIN" ]; then
+    ${PYTHON_EXECUTION} ${FILEPATH} -d ${DOMAIN} -f -r ${REGISTER_URL}
+else
+    ${PYTHON_EXECUTION} ${FILEPATH} -f -r ${REGISTER_URL}
+fi
 systemctl daemon-reload
 systemctl enable xshrine-client
-systemctl start client
-systemctl status client
+systemctl start xshrine-client
+systemctl status xshrine-client
