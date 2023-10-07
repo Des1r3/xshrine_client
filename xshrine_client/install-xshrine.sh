@@ -30,9 +30,9 @@ EOF
 
 # 执行命令
 if [ -z "$DOMAIN" ]; then
-    ${PYTHON_EXECUTION} ${FILEPATH} -d ${DOMAIN} -f -r ${REGISTER_URL}
-else
     ${PYTHON_EXECUTION} ${FILEPATH} -f -r ${REGISTER_URL}
+else
+    ${PYTHON_EXECUTION} ${FILEPATH} -d ${DOMAIN} -f -r ${REGISTER_URL} 
 fi
 systemctl daemon-reload
 systemctl enable xshrine-client
