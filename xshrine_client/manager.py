@@ -92,7 +92,7 @@ def arg_parser():
     parser.add_argument('-d', '--domain', help='Client domain.')
     return parser.parse_args()
 
-def client_init(uuid, key, port):
+def client_init(uuid, key, port=33459):
 
     # 判断文件是否存在
     settings_file = Path(BASE_DIR, 'settings.py')
@@ -121,8 +121,48 @@ CLIENT_KEY = "{key}"
 
     return True
 
-def client_register():
-    pass
+def get_key(url):
+    # 获取共享秘钥
+    serialized_public_key, private_key, _ = ecdh_generater()
+    response = requests.post(
+        url = url,
+        data = {
+            'command': 'register_get_key',
+            'public_key': serialized_public_key.decode()
+        }
+    )
+    if response.status_code == 200:
+        result = response.json()
+
+        if result['status'] == 1:
+            # 计算共享密钥
+            shared_key = get_shared_key(result['message'].encode(), private_key)
+
+            # 转换为base64
+            return base64.b64encode(shared_key).decode('utf-8')
+
+def client_register(url, host, port, uuid, shared_key, secret_key=None):
+    if not secret_key:
+        secret_key = shared_key
+
+    # 向服务端进行注册
+    fc = Fernet_encipher(key=shared_key)
+    response = requests.post(
+        url = url,
+        data = {
+            'command': 'register',
+            'host': fc.encrypt(host),
+            'port': fc.encrypt(port),
+            'key': fc.encrypt(secret_key),
+            'uuid': fc.encrypt(uuid)
+        }
+    )
+    if response.status_code == 200:
+        result = response.json()
+        if result['status'] == 1:
+            print('客户端注册完成')
+        else:
+            print(f'客户端注册失败, error: {result}')
 
 def main():
     args = arg_parser()
@@ -132,7 +172,7 @@ def main():
     else:
         host = 'none'
 
-    # 通过随机生成 key 的方式进行初始化
+    # 配置文件初始化，随机生成 key
     if args.init:
         if client_init(
             uuid = uuid4(),
@@ -140,51 +180,27 @@ def main():
         ):
             print('客户端初始化完成')
 
+    # 注册，http://116.205.188.228:7777/processClientUpload/
+    elif args.register:
+        from settings import CLIENT_LISTEN_PORT, CLIENT_UUID, CLIENT_KEY
+        url = args.register
+        shared_key = get_key(url)
+        client_register(url, host, CLIENT_LISTEN_PORT, CLIENT_UUID, shared_key, CLIENT_KEY)
+
     # 快速注册模式，无需手工配置就能完成注册
     elif args.register and args.fast:
-        # 交换共享密钥
-        serialized_public_key, private_key, _ = ecdh_generater()
-        response = requests.post(
-            url = args.register,
-            data = {
-                'command': 'register_get_key',
-                'public_key': serialized_public_key.decode()
-            }
-        )
+        url = args.register
 
-        if response.status_code == 200:
-            result = response.json()
+        # 获取随机 uuid/port/key
+        uuid = str(uuid4())
+        port = get_open_port()
+        shared_key = get_key(url)
 
-            if result['status'] == 1:
-                 # 计算共享密钥
-                shared_key = get_shared_key(result['message'].encode(), private_key)
+        # 初始化
+        client_init(uuid, shared_key, port)
 
-                # 转换为base64
-                shared_key = base64.b64encode(shared_key).decode('utf-8')
-
-                # 获取随机 uuid 和端口
-                uuid = str(uuid4())
-                port = get_open_port()
-
-                # 向服务端进行注册
-                fc = Fernet_encipher(key=shared_key)
-                response = requests.post(
-                    url = args.register,
-                    data = {
-                        'command': 'register',
-                        'host': fc.encrypt(host),
-                        'port': fc.encrypt(port),
-                        'key': fc.encrypt(shared_key),
-                        'uuid': fc.encrypt(uuid)
-                    }
-                )
-                if response.status_code == 200:
-                    result = response.json()
-                    if result['status'] == 1:
-                        # client_init(uuid, shared_key, port)
-                        print('客户端注册完成')
-                    else:
-                        print(f'客户端注册失败, error: {result}')
+        # 注册
+        client_register(url, host, port, uuid, shared_key)
 
     else:
         import runner
