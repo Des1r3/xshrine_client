@@ -180,13 +180,6 @@ def main():
         ):
             print('客户端初始化完成')
 
-    # 注册，http://116.205.188.228:7777/processClientUpload/
-    elif args.register:
-        from settings import CLIENT_LISTEN_PORT, CLIENT_UUID, CLIENT_KEY
-        url = args.register
-        shared_key = get_key(url)
-        client_register(url, host, CLIENT_LISTEN_PORT, CLIENT_UUID, shared_key, CLIENT_KEY)
-
     # 快速注册模式，无需手工配置就能完成注册
     elif args.register and args.fast:
         url = args.register
@@ -202,6 +195,13 @@ def main():
             client_register(url, host, port, uuid, shared_key)
         else:
             return
+
+    # 注册，向服务端手工注册
+    elif args.register:
+        from settings import CLIENT_LISTEN_PORT, CLIENT_UUID, CLIENT_KEY
+        url = args.register
+        shared_key = get_key(url)
+        client_register(url, host, CLIENT_LISTEN_PORT, CLIENT_UUID, shared_key, CLIENT_KEY)
 
     else:
         import runner
